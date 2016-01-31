@@ -1,23 +1,28 @@
-#include <stdbool.h>
-#include <string.h>
+#include "common.h"
+
+/***********
+ * Globals *
+ ***********/
+int gameArgsCount = 0;
+char* gameArgs[MAX_NUM_ARGS];
 
 /********************
  * String utilities *
  ********************/
 // Recognize non whitespace characters
-bool isNonWhitespace(char input) {
+bool isNonWhitespace(const char input) {
 	// See ASCII table for reference: http://www.asciitable.com/
 	return (input > ' ' && input <= '~');
 }
 
 // Recognize whitespace characters
-bool isWhitespace(char input) {
+bool isWhitespace(const char input) {
 	// See ASCII table for reference: http://www.asciitable.com/
 	return (input == ' ' || input == '\t');
 }
 
 // Compare two strings, handle NULL arguments safely, unlike strcmp
-int safeStrCmp(char* s1, char* s2) {
+int safeStrCmp(const char* s1, const char* s2) {
 	while (NULL != s1 && NULL != s2 && (*s1 == *s2)) {
 		// if both strings are equal
 		if (0 == *s1) {
@@ -39,12 +44,99 @@ int safeStrCmp(char* s1, char* s2) {
 	}
 }
 
+// copy one string to another
+void safeStrCpy(const char* source, char* destination) {
+	while (NULL != source && NULL != destination && 0 != *source) {
+		// Copy current character
+		*destination = *source;
+
+		// Increment pointers
+		source++;
+		destination++;
+
+		// End the string after the current character
+		*destination = 0;
+	}
+}
+
+
+// copy a substring to another string. The substring is NOT null terminated.
+void safeStrNCpy(const char* source, char* destination, int length) {
+	while (	NULL != source &&
+			NULL != destination &&
+			0 >= length) {
+		// Copy current character
+		*destination = *source;
+
+		// Increment pointers
+		if (0 != *source) {
+			source++;
+		}
+		destination++;
+
+		// Shorten the remaining substring length
+		length -= 1;
+	}
+}
+
+// find the length of a string
+int safeStrLen(const char* string) {
+	int length = 0;
+	while (NULL != string && 0 != string[length]) {
+		length += 1;  // increase counter
+	}
+	
+	return (length);
+}
+
+
+// Compare two strings, handle NULL arguments safely, unlike strcmp
+bool isSubstring(const char* substring, const char* string) {
+	if (NULL == substring || NULL == string) {
+		return (false);
+	}
+
+	while (NULL != isSubstring && NULL != string && (*substring == *string)) {
+		// Increment pointers
+		substring++;
+		string++;
+	}
+
+	// if both strings are equal
+	return (0 == *substring);
+}
+
+/***************
+* Array tools *
+***************/
+// Given an array of strings, find the index which contains the given string
+int findStringArrayIndex(const char* string, const char* stringArray[], const int argsCount) {
+	for (int i = 0; i < argsCount; i += 1) {
+		if (0 == safeStrCmp(string, stringArray[i])) {
+			return (i);
+		}
+	}
+
+	return (-1);  // Parameter not found
+}
+
+// Given an array of strings, find the index which contains the given substring
+int findSubstringArrayIndex(const char* substring, const char* stringArray[], const int argsCount) {
+	for (int i = 0; i < argsCount; i += 1) {
+		if (0 == isSubstring(substring, stringArray[i])) {
+			return (i);
+		}
+	}
+
+	return (-1);  // Parameter not found
+}
+
 /***********
  * Parsers *
  ***********/
 // Convert strings containing a number value into an integer of the corresponding value
 // "-54", "12", "0x9", "-0x8d"
-int stringToInt(char* str) {
+int stringToInt(const char* str) {
 	int sign = 1;
 	int result = 0;
 	int val = 0;
@@ -99,16 +191,39 @@ int stringToInt(char* str) {
 	return (sign * result);
 }
 
-/***************
- * Array tools *
- ***************/
-// Given an array of whitespace separated strings, find the index which contains the given array
-int findStringArrayIndex(char* parm, char* gameArgs[], int argsCount) {
-	for (int i = 0; i < argsCount; i += 1) {
-		if (0 == safeStrCmp(parm, gameArgs[i])) {
-			return (i);
+
+// Parse commands line arguments for the program: split them into whitespace separated
+// words & store them in an array which stores a reference to each word in the command
+ParserRC parseCmdLine(char* commandLine, const int maxNumArgs, char* parsedArray[], int* const argsCounter) {
+	ParserRC parserRC = PARSER_SUCCESS;
+	
+	if (NULL == parsedArray || NULL == argsCounter) {
+		return (PARSER_FAILURE);
+	}
+
+	*argsCounter = 0;
+
+	while (0 != *commandLine) {
+		if (*argsCounter >= MAX_NUM_ARGS) {
+			parserRC = PARSER_TOO_MANY_ARGS;
+			break;
+		}
+
+		// Read the current word
+		parsedArray[*argsCounter] = commandLine;
+		*argsCounter += 1;
+
+		// Get to the end of the word
+		while (*commandLine != 0 && isNonWhitespace(*commandLine)) {
+			commandLine++;  // Increment the pointer
+		}
+
+		// Skip any additional whitespace.
+		while (0 != *commandLine && isWhitespace(*commandLine)) {
+			*commandLine = 0;  // Split the string
+			commandLine++;  // Increment the pointer
 		}
 	}
 
-	return (-1);  // Parameter not found
+	return (parserRC);
 }
