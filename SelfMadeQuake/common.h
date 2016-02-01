@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#define MAX_NUM_ARGS 50
+#define MAX_NUM_ARGS (50)
 typedef enum parserRC {
 	PARSER_SUCCESS,
 	PARSER_INVALID_ARG,

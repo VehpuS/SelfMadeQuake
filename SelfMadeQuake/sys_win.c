@@ -27,7 +27,7 @@ WinMain(
 	_In_ int nCmdShow
 	) {
 	if (parseCmdLine(lpCmdLine, MAX_NUM_ARGS, gameArgs, &gameArgsCount) != PARSER_SUCCESS) {
-		return (1);
+		return (EXIT_FAILURE);
 	}
 
 	// TEST: input  -call the program with -number **any int number** output: make sure it is parsed.
@@ -38,6 +38,9 @@ WinMain(
 	if (test != -1) {
 		result = stringToInt(gameArgs[test + 1]);
 	}
+	else {
+		return (EXIT_FAILURE);
+	}
 
-	return (0);
+	return (EXIT_SUCCESS);
 }
