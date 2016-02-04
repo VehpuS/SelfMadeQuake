@@ -1,10 +1,62 @@
 #include "common.h"
 #include "winquake.h"
 
-bool isRunning = true;
+static bool isRunning = true;
 // Resolution
 int windowWidth = 800;
 int windowHeight = 600;
+
+void shutdownQuake() {
+	isRunning = false;
+}
+
+/**************
+ * Timer Code *
+ **************/
+static bool isInitialized = false;
+static double secondsPerTick = 0;
+static double gameTimePassed = 0;
+static __int64 lastMeasuredTicks = 0;
+
+float initProgramTimer() {
+	// Get the OS frequency to calculate time
+	LARGE_INTEGER ticksPerSecond;
+	QueryPerformanceFrequency(&ticksPerSecond);
+
+	secondsPerTick = 1.0 / (double)ticksPerSecond.QuadPart;
+
+	LARGE_INTEGER initialTicks;
+	QueryPerformanceCounter(&initialTicks);
+
+	lastMeasuredTicks = initialTicks.QuadPart;
+
+	isInitialized = true;
+
+	return (0);
+}
+
+
+float getTotalElapsedTime() {
+	// If this is called before the timers have been initialized - exit to indicate there is a problem.
+#ifdef NDEBUG
+	if (!isInitialized) {
+		shutdownQuake();
+		return (0);
+	}
+#endif // NDEBUG
+
+	LARGE_INTEGER currentTicks;
+	QueryPerformanceCounter(&currentTicks);
+
+	__int64 ticksSinceLastMeasured = currentTicks.QuadPart - lastMeasuredTicks;
+	lastMeasuredTicks = currentTicks.QuadPart;
+
+	double secondsElapsed = (double)ticksSinceLastMeasured * secondsPerTick;
+	gameTimePassed += secondsElapsed;
+	return ((float)secondsElapsed);
+}
+
+
 
 // Tests
 // Test window size by spliting it into four equal rectangles
@@ -32,16 +84,18 @@ LRESULT CALLBACK MainWndProc(
 
 	// catch any relevant messages here
 	switch (uMsg) {
-	case WM_ACTIVATE:
 	case WM_CREATE:
 		testWindowSize(hwnd, windowWidth, windowHeight, BLACKNESS);
+		break;
+	case WM_ACTIVATE:
 		break;
 	case WM_KEYUP:
 		// Posted to the window with the keyboard focus when a nonsystem key is released
 		testWindowSize(hwnd, windowWidth, windowHeight, DSTINVERT);
 		break;
 	case WM_DESTROY:
-		isRunning = false;
+		shutdownQuake();
+		PostQuitMessage(0);
 		break;
 	default:
 		result = DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -133,24 +187,31 @@ WinMain(
 
 	MSG msg;  // will store a message from the OS
 	LRESULT dispatchResult;
+
+	float startTimer = initProgramTimer();
+
 	while (isRunning) {
 		// Check the OS for messages
-		if (PeekMessage(&msg,			// A pointer to an MSG structure that receives message information
+		while (PeekMessage(&msg,		// A pointer to an MSG structure that receives message information
 						NULL,			// if hWnd is NULL, both window messages and thread messages are processed
 						0,				// The value of the first message in the range of messages to be examined
 						0,				// The value of the last message in the range of messages to be examined
 						PM_REMOVE)		// Specifies how messages are to be handled
 						) {
+			// Translate MSG
 			bool messageTranslated = TranslateMessage(&msg);
-			// will call MainWndProc
+
+			// Will call MainWndProc
 			dispatchResult = DispatchMessage(&msg);
-
-			// Update game loop
-			// updateGameLoop();
-
-			// Update graphics
-			// drawGraphics();
 		}
+
+		// Update game loop
+		// updateGameLoop();
+
+		// Update graphics
+		// drawGraphics();
+
+		float totalElapsedTime = getTotalElapsedTime();
 	}
 
 	return (EXIT_SUCCESS);
