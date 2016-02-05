@@ -3,6 +3,7 @@
 #define _COMMON
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <string.h>
 
 #define MAX_NUM_ARGS (50)

@@ -20,11 +20,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\SelfMadeQuake\common.c" />
+    <ClCompile Include="instance.c" />
     <ClCompile Include="main.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\SelfMadeQuake\common.h" />
     <ClInclude Include="..\SelfMadeQuake\winquake.h" />
+    <ClInclude Include="instance.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{1FFAA463-3CBE-425A-9C98-5A20189DCA94}</ProjectGuid>

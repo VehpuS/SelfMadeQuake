@@ -1,64 +1,22 @@
 #include "common.h"
 #include "winquake.h"
+#include "instance.h"
 
-static bool isRunning = true;
 // Resolution
 int windowWidth = 800;
 int windowHeight = 600;
 
-void shutdownQuake() {
-	isRunning = false;
-}
-
-/**************
- * Timer Code *
- **************/
-static bool isInitialized = false;
-static double secondsPerTick = 0;
-static double gameTimePassed = 0;
-static __int64 lastMeasuredTicks = 0;
-
-float initProgramTimer() {
-	// Get the OS frequency to calculate time
-	LARGE_INTEGER ticksPerSecond;
-	QueryPerformanceFrequency(&ticksPerSecond);
-
-	secondsPerTick = 1.0 / (double)ticksPerSecond.QuadPart;
-
-	LARGE_INTEGER initialTicks;
-	QueryPerformanceCounter(&initialTicks);
-
-	lastMeasuredTicks = initialTicks.QuadPart;
-
-	isInitialized = true;
-
-	return (0);
+/***************************
+* Exit point for windows. *
+***************************/
+void WIN_shutdownQuake() {
+	shutdownQuake();
 }
 
 
-float getTotalElapsedTime() {
-	// If this is called before the timers have been initialized - exit to indicate there is a problem.
-#ifdef NDEBUG
-	if (!isInitialized) {
-		shutdownQuake();
-		return (0);
-	}
-#endif // NDEBUG
-
-	LARGE_INTEGER currentTicks;
-	QueryPerformanceCounter(&currentTicks);
-
-	__int64 ticksSinceLastMeasured = currentTicks.QuadPart - lastMeasuredTicks;
-	lastMeasuredTicks = currentTicks.QuadPart;
-
-	double secondsElapsed = (double)ticksSinceLastMeasured * secondsPerTick;
-	gameTimePassed += secondsElapsed;
-	return ((float)secondsElapsed);
-}
-
-
-
-// Tests
+/************
+* Test Code *
+*************/
 // Test window size by spliting it into four equal rectangles
 void testWindowSize(HWND window, const int width, const int height, const DWORD color) {
 	HDC DeviceContext = GetDC(window);
@@ -70,7 +28,58 @@ void testWindowSize(HWND window, const int width, const int height, const DWORD 
 }
 
 
-// Event processing
+/**************
+ * Timer Code *
+ **************/
+// get timer information from windows
+void WIN_initProgramTimer(
+	double* const secondsPerTick,
+	int64_t* const lastMeasuredTicks,
+	bool* const timerIsInitialized) {
+	// Get the OS frequency to calculate time
+	LARGE_INTEGER ticksPerSecond;
+	QueryPerformanceFrequency(&ticksPerSecond);
+
+	*secondsPerTick = 1.0 / (double)ticksPerSecond.QuadPart;
+
+	LARGE_INTEGER initialTicks;
+	QueryPerformanceCounter(&initialTicks);
+
+	*lastMeasuredTicks = (int64_t) initialTicks.QuadPart;
+
+	*timerIsInitialized = true;
+}
+
+// calculate the total elapsed time since the game started
+float WIN_getTotalElapsedTime(
+	int64_t* const lastMeasuredTicks,
+	double* const gameTimePassed) {
+	// If this is called before the timers have been initialized - exit to indicate there is a problem.
+#ifdef NDEBUG
+	if (!isInitialized) {
+		WIN_shutdownQuake();
+		return (0);
+	}
+#endif // NDEBUG
+
+	LARGE_INTEGER currentTicks;
+	QueryPerformanceCounter(&currentTicks);
+
+	__int64 ticksSinceLastMeasured = currentTicks.QuadPart - (__int64)*lastMeasuredTicks;
+	*lastMeasuredTicks = (int64_t)currentTicks.QuadPart;
+
+	double secondsElapsed = (double)ticksSinceLastMeasured * secondsPerTick;
+	*gameTimePassed += secondsElapsed;
+	return ((float)secondsElapsed);
+}
+
+
+/********************
+ * Input processing *
+ ********************/
+MSG msg;  // will store a message from the OS
+LRESULT dispatchResult;
+
 // An application-defined function that processes messages sent to a window.
 // The WNDPROC type defines a pointer to this callback function.
 // https://msdn.microsoft.com/en-us/library/windows/desktop/ms633573(v=vs.85).aspx
@@ -94,7 +103,7 @@ LRESULT CALLBACK MainWndProc(
 		testWindowSize(hwnd, windowWidth, windowHeight, DSTINVERT);
 		break;
 	case WM_DESTROY:
-		shutdownQuake();
+		WIN_shutdownQuake();
 		PostQuitMessage(0);
 		break;
 	default:
@@ -104,13 +113,32 @@ LRESULT CALLBACK MainWndProc(
 	return (result);
 }
 
-HWND generateWindowByResolution(HINSTANCE hInstance,
-								LPCTSTR className,
-								LPCTSTR windowName,
-								const int xPos,
-								const int yPos,
-								const int nWidth,
-								const int nHeight) {
+// Get all OS messages and process them
+void WIN_checkInput(void) {
+	while (PeekMessage(&msg,		// A pointer to an MSG structure that receives message information
+		NULL,		// if hWnd is NULL, both window messages and thread messages are processed
+		0,			// The value of the first message in the range of messages to be examined
+		0,			// The value of the last message in the range of messages to be examined
+		PM_REMOVE)	// Specifies how messages are to be handled
+		) {
+		// Translate MSG
+		bool messageTranslated = TranslateMessage(&msg);
+
+		// Will call MainWndProc
+		dispatchResult = DispatchMessage(&msg);
+	}
+}
+
+/****************
+ * Window setup *
+ ****************/
+HWND WIN_generateWindowByResolution(HINSTANCE hInstance,
+									const LPCTSTR className,
+									const LPCTSTR windowName,
+									const int xPos,
+									const int yPos,
+									const int nWidth,
+									const int nHeight) {
 
 	// Generate window style and actual width / height
 	DWORD windowStyle = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
@@ -137,10 +165,9 @@ HWND generateWindowByResolution(HINSTANCE hInstance,
 							0);
 }
 
-
 /****************************
-* Entry point for windows. *
-****************************/
+ * Entry point for windows. *
+ ****************************/
 // WinAPI documentation: https://msdn.microsoft.com/en-us/library/windows/desktop/ms633559(v=vs.85).aspx
 int
 #if !defined(_MAC)
@@ -161,8 +188,8 @@ WinMain(
 	// To retrieve the entire command line, use the GetCommandLine function.
 	_In_ LPSTR lpCmdLine,
 	// Controls how the window is to be shown (based on the properties in the windows program).
-	_In_ int nCmdShow
-	) {
+	_In_ int nCmdShow)
+{
 	WNDCLASSEX wc = { 0 };
 	wc.cbSize = sizeof(WNDCLASSEX);
 	wc.lpfnWndProc = MainWndProc;
@@ -175,44 +202,24 @@ WinMain(
 		return (EXIT_FAILURE);
 	}
 
-	HWND mainWindow = generateWindowByResolution(	hInstance,
-													wc.lpszClassName,
-													"GameLoop Window",
-													CW_USEDEFAULT,
-													CW_USEDEFAULT,
-													windowWidth,
-													windowHeight);
+	HWND mainWindow = WIN_generateWindowByResolution(
+		hInstance,
+		wc.lpszClassName,
+		"GameLoop Window",
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
+		windowWidth,
+		windowHeight);
 
 	ShowWindow(mainWindow, SW_SHOWDEFAULT);
 
-	MSG msg;  // will store a message from the OS
-	LRESULT dispatchResult;
+	int targetFPS = 60;
 
-	float startTimer = initProgramTimer();
-
-	while (isRunning) {
-		// Check the OS for messages
-		while (PeekMessage(&msg,		// A pointer to an MSG structure that receives message information
-						NULL,			// if hWnd is NULL, both window messages and thread messages are processed
-						0,				// The value of the first message in the range of messages to be examined
-						0,				// The value of the last message in the range of messages to be examined
-						PM_REMOVE)		// Specifies how messages are to be handled
-						) {
-			// Translate MSG
-			bool messageTranslated = TranslateMessage(&msg);
-
-			// Will call MainWndProc
-			dispatchResult = DispatchMessage(&msg);
-		}
-
-		// Update game loop
-		// updateGameLoop();
-
-		// Update graphics
-		// drawGraphics();
-
-		float totalElapsedTime = getTotalElapsedTime();
-	}
+	runQuakeGameLoop(
+		targetFPS,
+		WIN_initProgramTimer,
+		WIN_getTotalElapsedTime,
+		WIN_checkInput);
 
 	return (EXIT_SUCCESS);
 }

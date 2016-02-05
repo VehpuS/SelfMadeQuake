@@ -21,12 +21,18 @@
     <ClCompile Include="..\SelfMadeQuake\common.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="instance.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\SelfMadeQuake\winquake.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\SelfMadeQuake\common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="instance.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
