@@ -55,6 +55,8 @@ WinMain(
 		return (EXIT_FAILURE);
 	}
 
+	bool fullscreen = false;
+
 	HWND mainWindow = WIN_generateWindowByResolution(
 		hInstance,
 		wc.lpszClassName,
@@ -62,7 +64,8 @@ WinMain(
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
 		windowWidth,
-		windowHeight);
+		windowHeight,
+		fullscreen);
 
 	ShowWindow(mainWindow, SW_SHOWDEFAULT);
 

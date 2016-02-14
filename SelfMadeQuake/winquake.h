@@ -3,6 +3,8 @@
 #define _WINQUAKE
 #include <Windows.h>
 
+#define BYTES_PER_PIXEL (4)
+
 /**************
 * Timer Code *
 **************/
@@ -44,7 +46,8 @@ HWND WIN_generateWindowByResolution(
 	const int xPos,
 	const int yPos,
 	const int nWidth,
-	const int nHeight);
+	const int nHeight,
+	bool fullscreen);
 
 
 /****************
@@ -57,7 +60,8 @@ HWND WIN_generateWindowByResolution(
 	const int xPos,
 	const int yPos,
 	const int nWidth,
-	const int nHeight)
+	const int nHeight,
+	bool fullscreen)
 {
 
 	// Generate window style and actual width / height
@@ -67,12 +71,34 @@ HWND WIN_generateWindowByResolution(
 	rect.top = rect.left = 0;
 	rect.right = nWidth;
 	rect.bottom = nHeight;
-	AdjustWindowRectEx(&rect, windowStyle, FALSE, dwExStyle);
 	int mainWindowWidth = rect.right - rect.left;
 	int mainWindowHeight = rect.bottom - rect.top;
 
+	// Check if a fullscreen window is requested
+	if (fullscreen)
+	{
+		DEVMODE dmScreenSettings = {0};
+		dmScreenSettings.dmSize = sizeof(dmScreenSettings);
+		dmScreenSettings.dmPelsWidth = nWidth;
+		dmScreenSettings.dmPelsHeight = nHeight;
+		dmScreenSettings.dmBitsPerPel = BYTES_PER_PIXEL * 8;
+		dmScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSHEIGHT | DM_PELSWIDTH;
+
+		if (DISP_CHANGE_SUCCESSFUL == ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN))
+		{
+			dwExStyle = WS_EX_APPWINDOW;
+			windowStyle = WS_POPUP;
+		}
+		else
+		{
+			fullscreen = false;
+		}
+	}
+
+	AdjustWindowRectEx(&rect, windowStyle, FALSE, dwExStyle);
+
 	// Create the window and return it
-	return CreateWindowEx(
+	HWND window = CreateWindowEx(
 		dwExStyle,
 		className,
 		windowName,
@@ -85,6 +111,12 @@ HWND WIN_generateWindowByResolution(
 		NULL,
 		hInstance,
 		0);
+
+	if (fullscreen)
+	{
+		SetWindowLong(window, GWL_STYLE, 0);
+	}
+	return (window);
 }
 
 void WIN_blackoutWindow(HWND window, const int width, const int height);

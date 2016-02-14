@@ -33,7 +33,6 @@ void testWindowSize(HWND window, const int width, const int height, const DWORD 
 
 void drawRandomPixels(HWND window)
 {
-	int BYTES_PER_PIXEL = 4;
 	void* backBuffer;
 	backBuffer = malloc(windowWidth * windowHeight * BYTES_PER_PIXEL);
 
@@ -137,15 +136,11 @@ LRESULT CALLBACK WIN_processSystemMessages(
 	switch (uMsg)
 	{
 	case WM_CREATE:
-		drawRandomPixels(hwnd);
+		// Posted to the window with the keyboard focus when a nonsystem key is released
 		break;
 	case WM_ACTIVATE:
 		break;
 	case WM_KEYUP:
-		// Posted to the window with the keyboard focus when a nonsystem key is released
-		drawRandomPixels(hwnd);
-		testWindowSize(hwnd, windowWidth, windowHeight, DSTINVERT);
-		break;
 	case WM_DESTROY:
 		WIN_shutdownQuake();
 		isRunning = false;
@@ -215,6 +210,8 @@ WinMain(
 		return (EXIT_FAILURE);
 	}
 
+	bool fullscreen = false;
+
 	HWND mainWindow = WIN_generateWindowByResolution(
 		hInstance,
 		wc.lpszClassName,
@@ -222,12 +219,12 @@ WinMain(
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
 		windowWidth,
-		windowHeight);
+		windowHeight,
+		fullscreen);
 
 	ShowWindow(mainWindow, SW_SHOWDEFAULT);
 
 	// initialize a bitmap used for drawing
-	int BYTES_PER_PIXEL = 4;
 	void* backBuffer;
 	backBuffer = malloc(windowWidth * windowHeight * BYTES_PER_PIXEL);
 
@@ -268,6 +265,7 @@ WinMain(
 			gameLoopElapsedTime -= targetTimestep;
 		}
 
+		drawRandomPixels(mainWindow);
 		renderFrame(gameLoopElapsedTime, targetTimestep);
 	}
 
