@@ -21,7 +21,7 @@
     <ClCompile Include="..\SelfMadeQuake\common.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="instance.c">
+    <ClCompile Include="..\SelfMadeQuake\instance.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -32,7 +32,7 @@
     <ClInclude Include="..\SelfMadeQuake\common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="instance.h">
+    <ClInclude Include="..\SelfMadeQuake\instance.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

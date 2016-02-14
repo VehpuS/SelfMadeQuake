@@ -2,6 +2,8 @@
 #include "winquake.h"
 #include "instance.h"
 
+static bool isRunning = false;
+
 // Resolution
 int windowWidth = 800;
 int windowHeight = 600;
@@ -9,7 +11,8 @@ int windowHeight = 600;
 /***************************
 * Exit point for windows. *
 ***************************/
-void WIN_shutdownQuake() {
+void WIN_shutdownQuake()
+{
 	shutdownQuake();
 }
 
@@ -18,7 +21,8 @@ void WIN_shutdownQuake() {
 * Test Code *
 *************/
 // Test window size by spliting it into four equal rectangles
-void testWindowSize(HWND window, const int width, const int height, const DWORD color) {
+void testWindowSize(HWND window, const int width, const int height, const DWORD color)
+{
 	HDC DeviceContext = GetDC(window);
 	PatBlt(DeviceContext, 0, 0, width / 2, height / 2, color);
 
@@ -27,15 +31,50 @@ void testWindowSize(HWND window, const int width, const int height, const DWORD 
 	ReleaseDC(window, DeviceContext);
 }
 
+void drawRandomPixels(HWND window)
+{
+	int BYTES_PER_PIXEL = 4;
+	void* backBuffer;
+	backBuffer = malloc(windowWidth * windowHeight * BYTES_PER_PIXEL);
+
+	int* bufferWritePointer = (int*)backBuffer;
+	for (int height = 0; height < windowHeight; height += 1)
+	{
+		for (
+			int width = 0;
+			width < windowWidth;
+			bufferWritePointer++,  // Increment the pointer
+			width += 1)
+		{
+			int RED_POS = 16;  // 3rd byte
+			char red = rand() % 256;
+			int GREEN_POS = 8;  // 2nd byte
+			char green = rand() % 256;
+			int BLUE_POS = 0;  // 1st byte
+			char blue = rand() % 256;
+
+			// Insert the RBG info into the correct bits in the bitmap
+			*bufferWritePointer = (
+				(red << RED_POS) |
+				(green << GREEN_POS) |
+				(blue << BLUE_POS));
+		}
+	}
+
+	WIN_drawBitMap(window, windowWidth, windowHeight, backBuffer);
+
+	free(backBuffer);
+}
 
 /**************
- * Timer Code *
- **************/
+* Timer Code *
+**************/
 // get timer information from windows
 void WIN_initProgramTimer(
 	double* const secondsPerTick,
 	int64_t* const lastMeasuredTicks,
-	bool* const timerIsInitialized) {
+	bool* const timerIsInitialized)
+{
 	// Get the OS frequency to calculate time
 	LARGE_INTEGER ticksPerSecond;
 	QueryPerformanceFrequency(&ticksPerSecond);
@@ -45,7 +84,7 @@ void WIN_initProgramTimer(
 	LARGE_INTEGER initialTicks;
 	QueryPerformanceCounter(&initialTicks);
 
-	*lastMeasuredTicks = (int64_t) initialTicks.QuadPart;
+	*lastMeasuredTicks = (int64_t)initialTicks.QuadPart;
 
 	*timerIsInitialized = true;
 }
@@ -53,10 +92,12 @@ void WIN_initProgramTimer(
 // calculate the total elapsed time since the game started
 float WIN_getTotalElapsedTime(
 	int64_t* const lastMeasuredTicks,
-	double* const gameTimePassed) {
+	double* const gameTimePassed)
+{
 	// If this is called before the timers have been initialized - exit to indicate there is a problem.
 #ifdef NDEBUG
-	if (!isInitialized) {
+	if (!isInitialized)
+	{
 		WIN_shutdownQuake();
 		return (0);
 	}
@@ -75,8 +116,8 @@ float WIN_getTotalElapsedTime(
 
 
 /********************
- * Input processing *
- ********************/
+* Input processing *
+********************/
 MSG msg;  // will store a message from the OS
 LRESULT dispatchResult;
 
@@ -88,22 +129,26 @@ LRESULT CALLBACK WIN_processSystemMessages(
 	_In_ UINT   uMsg,	// Message - numerical identifier for the message
 	_In_ WPARAM wParam,	// Additional info on the message
 	_In_ LPARAM lParam	// Additional info on the message
-	) {
+	)
+{
 	LRESULT result = 0;
 
 	// catch any relevant messages here
-	switch (uMsg) {
+	switch (uMsg)
+	{
 	case WM_CREATE:
-		testWindowSize(hwnd, windowWidth, windowHeight, BLACKNESS);
+		drawRandomPixels(hwnd);
 		break;
 	case WM_ACTIVATE:
 		break;
 	case WM_KEYUP:
 		// Posted to the window with the keyboard focus when a nonsystem key is released
+		drawRandomPixels(hwnd);
 		testWindowSize(hwnd, windowWidth, windowHeight, DSTINVERT);
 		break;
 	case WM_DESTROY:
 		WIN_shutdownQuake();
+		isRunning = false;
 		PostQuitMessage(0);
 		break;
 	default:
@@ -114,13 +159,15 @@ LRESULT CALLBACK WIN_processSystemMessages(
 }
 
 // Get all OS messages and process them
-void WIN_checkInput(void) {
+void WIN_checkInput(void)
+{
 	while (PeekMessage(&msg,		// A pointer to an MSG structure that receives message information
 		NULL,		// if hWnd is NULL, both window messages and thread messages are processed
 		0,			// The value of the first message in the range of messages to be examined
 		0,			// The value of the last message in the range of messages to be examined
 		PM_REMOVE)	// Specifies how messages are to be handled
-		) {
+		)
+	{
 		// Translate MSG
 		bool messageTranslated = TranslateMessage(&msg);
 
@@ -129,45 +176,10 @@ void WIN_checkInput(void) {
 	}
 }
 
-/****************
- * Window setup *
- ****************/
-HWND WIN_generateWindowByResolution(HINSTANCE hInstance,
-									const LPCTSTR className,
-									const LPCTSTR windowName,
-									const int xPos,
-									const int yPos,
-									const int nWidth,
-									const int nHeight) {
-
-	// Generate window style and actual width / height
-	DWORD windowStyle = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
-	RECT rect;
-	rect.top = rect.left = 0;
-	rect.right = nWidth;
-	rect.bottom = nHeight;
-	AdjustWindowRect(&rect, windowStyle, FALSE);
-	int mainWindowWidth = rect.right - rect.left;
-	int mainWindowHeight = rect.bottom - rect.top;
-
-	// Create the window and return it
-	return CreateWindowEx(	0,
-							className,
-							windowName,
-							windowStyle,
-							xPos,
-							yPos,
-							mainWindowWidth,
-							mainWindowHeight,
-							NULL,
-							NULL,
-							hInstance,
-							0);
-}
 
 /****************************
- * Entry point for windows. *
- ****************************/
+* Entry point for windows. *
+****************************/
 // WinAPI documentation: https://msdn.microsoft.com/en-us/library/windows/desktop/ms633559(v=vs.85).aspx
 int
 #if !defined(_MAC)
@@ -190,22 +202,23 @@ WinMain(
 	// Controls how the window is to be shown (based on the properties in the windows program).
 	_In_ int nCmdShow)
 {
-	WNDCLASSEX wc = { 0 };
+	WNDCLASSEX wc = {0};
 	wc.cbSize = sizeof(WNDCLASSEX);
 	wc.lpfnWndProc = WIN_processSystemMessages;  // The message handling function
 	wc.hInstance = hInstance;
-	wc.hCursor = LoadImage(	NULL, IDC_ARROW, IMAGE_CURSOR,
-							0, 0, LR_DEFAULTSIZE);
-	wc.lpszClassName = "GameLoop";
+	wc.hCursor = LoadImage(NULL, IDC_ARROW, IMAGE_CURSOR,
+		0, 0, LR_DEFAULTSIZE);
+	wc.lpszClassName = "DrawingInWindows";
 
-	if (!RegisterClassEx(&wc)) {
+	if (!RegisterClassEx(&wc))
+	{
 		return (EXIT_FAILURE);
 	}
 
 	HWND mainWindow = WIN_generateWindowByResolution(
 		hInstance,
 		wc.lpszClassName,
-		"GameLoop Window",
+		"DrawingInWindows Window",
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
 		windowWidth,
@@ -213,13 +226,52 @@ WinMain(
 
 	ShowWindow(mainWindow, SW_SHOWDEFAULT);
 
+	// initialize a bitmap used for drawing
+	int BYTES_PER_PIXEL = 4;
+	void* backBuffer;
+	backBuffer = malloc(windowWidth * windowHeight * BYTES_PER_PIXEL);
+
+	// Prepare the game loop
 	int targetFPS = 60;
 
-	runQuakeGameLoop(
-		targetFPS,
-		WIN_initProgramTimer,
-		WIN_getTotalElapsedTime,
-		WIN_checkInput);
+	// Run platform independent initialization
+	initQuake();
+	isRunning = true;
 
+	// Setup timing logic
+	WIN_initProgramTimer(&secondsPerTick, &lastMeasuredTicks, &timerIsInitialized);
+	float targetTimestep = 1.0f / (float)targetFPS;
+	float gameLoopElapsedTime = 0;
+	float nextFrameStartTime = 0;
+
+	// Designed using tips from http://gameprogrammingpatterns.com/game-loop.html
+	while (isRunning)
+	{
+		// Update timer
+		gameLoopElapsedTime = calculateGameLoopElapsedTime(
+			nextFrameStartTime,
+			&nextFrameStartTime,
+			&lastMeasuredTicks,
+			&gameTimePassed,
+			WIN_getTotalElapsedTime);
+
+		// Check the OS for input
+		WIN_checkInput();
+
+		// Start an update loop until we return to "real time" or we've looped too much
+		for (int updateLoops = 0;
+		gameLoopElapsedTime > targetTimestep &&
+			updateLoops < MAX_UPDATE_LOOPS_BETWEEN_RENDER;
+			updateLoops += 1)
+		{
+			updateFrame(targetTimestep);
+			gameLoopElapsedTime -= targetTimestep;
+		}
+
+		renderFrame(gameLoopElapsedTime, targetTimestep);
+	}
+
+	free(backBuffer);
+	
 	return (EXIT_SUCCESS);
 }

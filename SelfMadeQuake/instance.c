@@ -10,7 +10,7 @@ double secondsPerTick = 0;
 int64_t lastMeasuredTicks = 0;
 double gameTimePassed = 0;
 
-// Will run on each itteration of the game loop to calculate how much real time passed in the game loop
+// Will run on each iteration of the game loop to calculate how much real time passed in the game loop
 float calculateGameLoopElapsedTime(
 	const float iterationStartTime,
 	float* const nextFrameStartTime,
@@ -24,14 +24,14 @@ float calculateGameLoopElapsedTime(
 
 static bool isRunning = false;
 
-// Platform independent init code
+// Platform independent initialization code
 void initQuake(void) {
 	isRunning = true;
 }
 
 // Platform independent update code
 void updateFrame(float timestep) {
-
+	//update game
 }
 
 // Platform independent render code
@@ -51,7 +51,7 @@ QuakeRC runQuakeGameLoop(
 	getTotalElapsedTime getTotalElapsedTime,
 	checkInput checkInput)
 	{
-	// Run platform independent init
+	// Run platform independent initialization
 	initQuake();
 
 	// Setup timing logic
@@ -73,7 +73,7 @@ QuakeRC runQuakeGameLoop(
 		// Check the OS for input
 		checkInput();
 
-		// Start an update loop until we return to realtime or we've looped too much
+		// Start an update loop until we return to "real time" or we've looped too much
 		for (int updateLoops = 0;
 			gameLoopElapsedTime > targetTimestep &&
 				updateLoops < MAX_UPDATE_LOOPS_BETWEEN_RENDER;
