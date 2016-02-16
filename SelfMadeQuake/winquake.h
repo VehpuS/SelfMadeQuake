@@ -133,7 +133,7 @@ void WIN_drawBitMap(
 	// define bitmap info
 	bitMapInfo.bmiHeader.biSize = sizeof(bitMapInfo.bmiHeader);
 	bitMapInfo.bmiHeader.biWidth = bufferWidth;
-	bitMapInfo.bmiHeader.biHeight = bufferHeight;
+	bitMapInfo.bmiHeader.biHeight = -bufferHeight;  // Negative to ensure 0,0 is top left 
 	bitMapInfo.bmiHeader.biPlanes = 1;
 	bitMapInfo.bmiHeader.biBitCount = 32;
 	bitMapInfo.bmiHeader.biCompression = BI_RGB;

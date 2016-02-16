@@ -46,11 +46,11 @@ void drawRandomPixels(HWND window)
 			width += 1)
 		{
 			int RED_POS = 16;  // 3rd byte
-			char red = rand() % 256;
+			unsigned char red = rand() % 256;
 			int GREEN_POS = 8;  // 2nd byte
-			char green = rand() % 256;
+			unsigned char green = rand() % 256;
 			int BLUE_POS = 0;  // 1st byte
-			char blue = rand() % 256;
+			unsigned char blue = rand() % 256;
 
 			// Insert the RBG info into the correct bits in the bitmap
 			*bufferWritePointer = (
