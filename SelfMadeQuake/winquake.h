@@ -3,8 +3,6 @@
 #define _WINQUAKE
 #include <Windows.h>
 
-#define BYTES_PER_PIXEL (4)
-
 /**************
 * Timer Code *
 **************/
@@ -81,7 +79,7 @@ HWND WIN_generateWindowByResolution(
 		dmScreenSettings.dmSize = sizeof(dmScreenSettings);
 		dmScreenSettings.dmPelsWidth = nWidth;
 		dmScreenSettings.dmPelsHeight = nHeight;
-		dmScreenSettings.dmBitsPerPel = BYTES_PER_PIXEL * 8;
+		dmScreenSettings.dmBitsPerPel = PALETTE_BYTES * 8;
 		dmScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSHEIGHT | DM_PELSWIDTH;
 
 		if (DISP_CHANGE_SUCCESSFUL == ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN))
@@ -121,29 +119,40 @@ HWND WIN_generateWindowByResolution(
 
 void WIN_blackoutWindow(HWND window, const int width, const int height);
 
-void WIN_drawBitMap(
+// a "clone" of the BITMAPINFO struct in windows that predefines the size of the bitmap array
+typedef struct dibinfo_s {
+	BITMAPINFOHEADER bmiHeader;  // windows defined struct
+	RGBQUAD acolors[NUM_OF_COLORS_IN_PALETTE];  // color palette.
+} dibinfo_t;
+
+void generateRandomColorPalette(RGBQUAD colorPalette[NUM_OF_COLORS_IN_PALETTE])
+{
+	colorPalette[0].rgbRed = 0;
+	colorPalette[0].rgbGreen = 0;
+	colorPalette[0].rgbBlue = 0;
+
+	for (unsigned int i = 1; i < NUM_OF_COLORS_IN_PALETTE; i += 1)
+	{
+		colorPalette[i].rgbRed = randomRGBIntensity();
+		colorPalette[i].rgbGreen = randomRGBIntensity();
+		colorPalette[i].rgbBlue = randomRGBIntensity();
+	}
+}
+
+void WIN_displayBitMap(
 	HWND window,
+	BITMAPINFO* bitMapInfo,
 	const int bufferWidth,
 	const int bufferHeight,
 	void const* backBuffer)
 {
-	// Bitmap - https://msdn.microsoft.com/en-us/library/windows/desktop/dd183375(v=vs.85).aspx
-	BITMAPINFO bitMapInfo = {0};
-
-	// define bitmap info
-	bitMapInfo.bmiHeader.biSize = sizeof(bitMapInfo.bmiHeader);
-	bitMapInfo.bmiHeader.biWidth = bufferWidth;
-	bitMapInfo.bmiHeader.biHeight = -bufferHeight;  // Negative to ensure 0,0 is top left 
-	bitMapInfo.bmiHeader.biPlanes = 1;
-	bitMapInfo.bmiHeader.biBitCount = 32;
-	bitMapInfo.bmiHeader.biCompression = BI_RGB;
-
 	HDC deviceContext = GetDC(window);
 	StretchDIBits(
 		deviceContext,
 		0, 0, bufferWidth, bufferHeight,  // Destination coordinates & size
 		0, 0, bufferWidth, bufferHeight,  // Source coordinates & size
-		backBuffer, &bitMapInfo,
+		backBuffer,
+		bitMapInfo,  // Cast from our own struct to the default windows struct
 		DIB_RGB_COLORS, SRCCOPY);
 	DeleteDC(deviceContext);
 }

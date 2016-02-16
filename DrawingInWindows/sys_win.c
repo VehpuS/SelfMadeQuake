@@ -16,11 +16,262 @@ void WIN_shutdownQuake()
 	shutdownQuake();
 }
 
+/********************
+ * RGB Drawing code *
+ ********************/
+int colorPixelRGB(
+	const byte r,
+	const byte g,
+	const byte b)
+{
+	static int RED_POS = 16;  // 3rd byte
+	static int GREEN_POS = 8;  // 2nd byte
+	static int BLUE_POS = 0;  // 1st byte
+	return((r << RED_POS) | (g << GREEN_POS) | (b << BLUE_POS));
+}
+
+
+void drawRandomPixelsRGB(
+	const unsigned int bufferWidth,
+	const unsigned int bufferHeight,
+	int* backBuffer)
+{
+	if (NULL == backBuffer)
+	{
+		return;
+	}
+
+	for (
+		unsigned int y = 0;
+		y < bufferHeight;
+		y += 1)
+	{
+		for (
+			unsigned int x = 0;
+			x < bufferWidth;
+			backBuffer++,  // Increment the pointer
+			x += 1)
+		{
+			byte red = randomRGBIntensity();
+			byte green = randomRGBIntensity();
+			byte blue = randomRGBIntensity();
+
+			// Insert the RBG info into the correct bits in the bitmap
+			*backBuffer = colorPixelRGB(red, green, blue);
+		}
+	}
+}
+
+void drawLineRGB(
+	const unsigned int topLeftX,
+	const unsigned int topLeftY,
+	const unsigned int width,
+	const unsigned int height,
+	const byte r,
+	const byte g,
+	const byte b,
+	const unsigned int bufferWidth,
+	const unsigned int bufferHeight,
+	int* backBuffer)
+{
+	if (topLeftX >= bufferWidth || topLeftY >= bufferHeight)
+	{
+		return;
+	}
+
+	int color = colorPixelRGB(r, g, b);
+
+	backBuffer += (topLeftY * bufferWidth) + (topLeftX);
+
+	for (
+		unsigned int y = 0;
+		y < height &&
+		y + topLeftY < bufferHeight;
+		y += 1)
+	{
+		unsigned int x;
+		for (
+			x = 0;
+			x < width &&
+			x + topLeftX < bufferWidth;
+			backBuffer++,  // Increment the pointer
+			x += 1)
+		{
+			*backBuffer = color;
+		}
+		backBuffer += bufferWidth - x;
+	}
+}
+
+void drawRectRGB(
+	const unsigned int topLeftX,
+	const unsigned int topLeftY,
+	const unsigned int width,
+	const unsigned int height,
+	const unsigned int thickness,
+	const byte r,
+	const byte g,
+	const byte b,
+	const unsigned int bufferWidth,
+	const unsigned int bufferHeight,
+	int* backBuffer)
+{
+	if (topLeftX >= bufferWidth || topLeftY >= bufferHeight)
+	{
+		return;
+	}
+
+	int color = colorPixelRGB(r, g, b);
+
+	// Draw top line
+	drawLineRGB(topLeftX, topLeftY, width, thickness, r, g, b, bufferWidth, bufferHeight, backBuffer);
+
+	// Draw bottom line
+	drawLineRGB(topLeftX, topLeftY + (height - thickness), width, thickness, r, g, b, bufferWidth, bufferHeight, backBuffer);
+
+	// Draw sides
+	backBuffer += ((topLeftY + thickness) * bufferWidth) + (topLeftX);
+	for (
+		unsigned int y = 0;
+		y < height - 2 * thickness &&
+		y + topLeftY < bufferHeight;
+		y += 1)
+	{
+		unsigned int x;
+		for (
+			x = 0;
+			x < width &&
+			x + topLeftX < bufferWidth;
+			backBuffer++,  // Increment the pointer
+			x += 1)
+		{
+			if (x < thickness || x >= width - thickness)
+			{
+				*backBuffer = color;
+			}
+		}
+		backBuffer += bufferWidth - x;
+	}
+}
+
+/***********************
+* Palette Drawing code *
+************************/
+void drawRandomPixelsPalette(
+	const unsigned int bufferWidth,
+	const unsigned int bufferHeight,
+	byte* backBuffer)
+{
+	if (NULL == backBuffer)
+	{
+		return;
+	}
+
+	for (
+		unsigned int y = 0;
+		y < bufferHeight;
+		y += 1)
+	{
+		for (
+			unsigned int x = 0;
+			x < bufferWidth;
+			backBuffer++,  // Increment the pointer
+			x += 1)
+		{
+			// Insert the RBG info into the correct bits in the bitmap
+			*backBuffer = randomPaletteColor();
+		}
+	}
+}
+
+void drawLine(
+	const unsigned int topLeftX,
+	const unsigned int topLeftY,
+	const unsigned int width,
+	const unsigned int height,
+	const byte color,
+	const unsigned int bufferWidth,
+	const unsigned int bufferHeight,
+	byte* backBuffer)
+{
+	if (topLeftX >= bufferWidth || topLeftY >= bufferHeight)
+	{
+		return;
+	}
+
+	backBuffer += (topLeftY * bufferWidth + topLeftX) * PALETTE_BYTES;
+
+	for (
+		unsigned int y = 0;
+		y < height &&
+		y + topLeftY < bufferHeight;
+		y += 1)
+	{
+		unsigned int x;
+		for (
+			x = 0;
+			x < width &&
+			x + topLeftX < bufferWidth;
+			backBuffer++,  // Increment the pointer
+			x += 1)
+		{
+			*backBuffer = color;
+		}
+		backBuffer += (bufferWidth - x) * PALETTE_BYTES;
+	}
+}
+
+void drawRectPalette(
+	const unsigned int topLeftX,
+	const unsigned int topLeftY,
+	const unsigned int width,
+	const unsigned int height,
+	const unsigned int thickness,
+	const byte color,
+	const unsigned int bufferWidth,
+	const unsigned int bufferHeight,
+	byte* backBuffer)
+{
+	if (topLeftX >= bufferWidth || topLeftY >= bufferHeight)
+	{
+		return;
+	}
+
+	// Draw top line
+	drawLine(topLeftX, topLeftY, width, thickness, color, bufferWidth, bufferHeight, backBuffer);
+
+	// Draw bottom line
+	drawLine(topLeftX, topLeftY + (height - thickness), width, thickness, color, bufferWidth, bufferHeight, backBuffer);
+
+	// Draw sides
+	backBuffer += ((topLeftY + thickness) * bufferWidth + topLeftX) * PALETTE_BYTES;
+	for (
+		unsigned int y = 0;
+		y < height - 2 * thickness &&
+		y + topLeftY < bufferHeight;
+		y += 1)
+	{
+		unsigned int x;
+		for (
+			x = 0;
+			x < width &&
+			x + topLeftX < bufferWidth;
+			backBuffer++,  // Increment the pointer
+			x += 1)
+		{
+			if (x < thickness || x >= width - thickness)
+			{
+				*backBuffer = color;
+			}
+		}
+		backBuffer += (bufferWidth - x) * PALETTE_BYTES;
+	}
+}
 
 /************
 * Test Code *
 *************/
-// Test window size by spliting it into four equal rectangles
+// Test window size by splitting it into four equal rectangles
 void testWindowSize(HWND window, const int width, const int height, const DWORD color)
 {
 	HDC DeviceContext = GetDC(window);
@@ -29,40 +280,6 @@ void testWindowSize(HWND window, const int width, const int height, const DWORD 
 	PatBlt(DeviceContext, width / 2, height / 2, width / 2, height / 2, color);
 
 	ReleaseDC(window, DeviceContext);
-}
-
-void drawRandomPixels(HWND window)
-{
-	void* backBuffer;
-	backBuffer = malloc(windowWidth * windowHeight * BYTES_PER_PIXEL);
-
-	int* bufferWritePointer = (int*)backBuffer;
-	for (int height = 0; height < windowHeight; height += 1)
-	{
-		for (
-			int width = 0;
-			width < windowWidth;
-			bufferWritePointer++,  // Increment the pointer
-			width += 1)
-		{
-			int RED_POS = 16;  // 3rd byte
-			unsigned char red = rand() % 256;
-			int GREEN_POS = 8;  // 2nd byte
-			unsigned char green = rand() % 256;
-			int BLUE_POS = 0;  // 1st byte
-			unsigned char blue = rand() % 256;
-
-			// Insert the RBG info into the correct bits in the bitmap
-			*bufferWritePointer = (
-				(red << RED_POS) |
-				(green << GREEN_POS) |
-				(blue << BLUE_POS));
-		}
-	}
-
-	WIN_drawBitMap(window, windowWidth, windowHeight, backBuffer);
-
-	free(backBuffer);
 }
 
 /**************
@@ -136,7 +353,7 @@ LRESULT CALLBACK WIN_processSystemMessages(
 	switch (uMsg)
 	{
 	case WM_CREATE:
-		// Posted to the window with the keyboard focus when a nonsystem key is released
+		// Posted to the window with the keyboard focus when a non-system key is released
 		break;
 	case WM_ACTIVATE:
 		break;
@@ -211,6 +428,7 @@ WinMain(
 	}
 
 	bool fullscreen = false;
+	bool palette = false;
 
 	HWND mainWindow = WIN_generateWindowByResolution(
 		hInstance,
@@ -224,9 +442,50 @@ WinMain(
 
 	ShowWindow(mainWindow, SW_SHOWDEFAULT);
 
-	// initialize a bitmap used for drawing
 	void* backBuffer;
-	backBuffer = malloc(windowWidth * windowHeight * BYTES_PER_PIXEL);
+	BITMAPINFO* bitMapInfo;
+
+	if (palette)
+	{
+		// Palette drawing
+		// initialize a bitmap used for drawing
+		void* backBufferPalette = malloc(windowWidth * windowHeight * PALETTE_BYTES);
+
+		dibinfo_t bitMapInfoPalette = {0};
+
+		// define bitmap info
+		bitMapInfoPalette.bmiHeader.biSize = sizeof(bitMapInfoPalette.bmiHeader);
+		bitMapInfoPalette.bmiHeader.biWidth = windowWidth;
+		bitMapInfoPalette.bmiHeader.biHeight = -windowHeight;  // Negative to ensure 0, 0 is top left 
+		bitMapInfoPalette.bmiHeader.biPlanes = 1;
+		bitMapInfoPalette.bmiHeader.biBitCount = PALETTE_BYTES * BITS_PER_BYTE;
+		bitMapInfoPalette.bmiHeader.biCompression = BI_RGB;
+
+		generateRandomColorPalette(bitMapInfoPalette.acolors);
+
+		backBuffer = backBufferPalette;
+		bitMapInfo = (BITMAPINFO*)&bitMapInfoPalette;
+	}
+	else
+	{
+		// for RGB drawing
+		// initialize a bitmap used for drawing
+		void* backBufferRGB = malloc(windowWidth * windowHeight * RGB_BYTES);
+
+		// Bitmap - https://msdn.microsoft.com/en-us/library/windows/desktop/dd183375(v=vs.85).aspx
+		BITMAPINFO bitMapInfoRGB = {0};
+
+		// define bitmap info
+		bitMapInfoRGB.bmiHeader.biSize = sizeof(bitMapInfoRGB.bmiHeader);
+		bitMapInfoRGB.bmiHeader.biWidth = windowWidth;
+		bitMapInfoRGB.bmiHeader.biHeight = -windowHeight;  // Negative to ensure 0, 0 is top left 
+		bitMapInfoRGB.bmiHeader.biPlanes = 1;
+		bitMapInfoRGB.bmiHeader.biBitCount = RGB_BYTES * BITS_PER_BYTE;
+		bitMapInfoRGB.bmiHeader.biCompression = BI_RGB;
+
+		backBuffer = backBufferRGB;
+		bitMapInfo = &bitMapInfoRGB;
+	}
 
 	// Prepare the game loop
 	int targetFPS = 60;
@@ -256,8 +515,9 @@ WinMain(
 		WIN_checkInput();
 
 		// Start an update loop until we return to "real time" or we've looped too much
-		for (int updateLoops = 0;
-		gameLoopElapsedTime > targetTimestep &&
+		for (
+			int updateLoops = 0;
+			gameLoopElapsedTime > targetTimestep &&
 			updateLoops < MAX_UPDATE_LOOPS_BETWEEN_RENDER;
 			updateLoops += 1)
 		{
@@ -265,8 +525,24 @@ WinMain(
 			gameLoopElapsedTime -= targetTimestep;
 		}
 
-		drawRandomPixels(mainWindow);
+		if (palette)
+		{
+			drawRandomPixelsPalette(windowWidth, windowHeight, backBuffer);
+			drawRectPalette(20, 30, 300, 200, 4, randomPaletteColor(), windowWidth, windowHeight, backBuffer);
+			drawRectPalette(50, 60, 900, 250, 9, randomPaletteColor(), windowWidth, windowHeight, backBuffer);
+			drawRectPalette(200, 300, 100, 100, 20, randomPaletteColor(), windowWidth, windowHeight, backBuffer);
+		}
+		else
+		{
+			drawRandomPixelsRGB(windowWidth, windowHeight, backBuffer);
+			drawRectRGB(20, 30, 300, 200, 4, 255, 0, 0, windowWidth, windowHeight, backBuffer);
+			drawRectRGB(50, 60, 900, 250, 9, 70, 50, 200, windowWidth, windowHeight, backBuffer);
+			drawRectRGB(200, 300, 100, 100, 20, 40, 40, 40, windowWidth, windowHeight, backBuffer);
+		}
+
 		renderFrame(gameLoopElapsedTime, targetTimestep);
+		
+		WIN_displayBitMap(mainWindow, bitMapInfo, windowWidth, windowHeight, backBuffer);
 	}
 
 	free(backBuffer);

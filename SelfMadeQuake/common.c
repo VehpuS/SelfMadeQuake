@@ -1,4 +1,5 @@
 #include "common.h"
+#include <stdlib.h>
 
 /***********
  * Globals *
@@ -226,4 +227,17 @@ ParserRC parseCmdLine(char* commandLine, const int maxNumArgs, char* parsedArray
 	}
 
 	return (parserRC);
+}
+
+/*********************
+ * Drawing utilities *
+ *********************/
+byte randomRGBIntensity(void)
+{
+	return (rand() % 256);
+}
+
+byte randomPaletteColor(void)
+{
+	return (rand() % NUM_OF_COLORS_IN_PALETTE);
 }

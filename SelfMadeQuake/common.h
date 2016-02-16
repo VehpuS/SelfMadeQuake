@@ -7,6 +7,14 @@
 #include <string.h>
 
 #define MAX_NUM_ARGS (50)
+#define BITS_PER_BYTE (8)
+
+#define RGB_BYTES (4)
+#define PALETTE_BYTES (1)
+#define NUM_OF_COLORS_IN_PALETTE (256)
+
+typedef unsigned char byte;
+
 typedef enum parserRC {
 	PARSER_SUCCESS,
 	PARSER_INVALID_ARG,
@@ -30,5 +38,8 @@ int findStringArrayIndex(const char* parm, const char* gameArgs[], const int arg
 int findSubstringArrayIndex(const char* substring, const char* stringArray[], const int argsCount);
 
 ParserRC parseCmdLine(char* commandLine, const int maxNumArgs, char* parsedArray[], int* const argsCounter);
+
+byte randomRGBIntensity(void);
+unsigned char randomPaletteColor(void);
 
 #endif  // _COMMON
